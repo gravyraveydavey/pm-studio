@@ -6,6 +6,7 @@ import { PR, PSTAT, ST } from '../core/constants.js';
 import { seed } from '../data/seed.js';
 import { D, DEFAULT_PREFS, S, allTasks, canSee, commentsOf, logAct, me, mem, proj, save, task, tasksOf, visibleProjects, persistence } from '../core/store.js';
 import { apiRequest } from '../core/persistence.js';
+import { prepareUpload } from '../core/uploads.js';
 import { fileType, fsize } from '../ui/helpers.js';
 import { effectiveDark } from '../core/theme.js';
 import { mutate, toast } from '../ui/toast.js';
@@ -807,8 +808,10 @@ export async function handleFiles(files, ctx) {
     toast("Upload failed — you're offline.", { kind: 'err', action: 'Try again', onAction: () => {} });
     return;
   }
-  if (!persistence.canEdit() || !(await persistence.flush())) {
-    toast('Save your current changes before uploading.', { kind: 'err' });
+  try {
+    files = await prepareUpload(files, persistence);
+  } catch (error) {
+    toast(error.message, { kind: 'err' });
     return;
   }
   S.ui.uploads = S.ui.uploads || [];

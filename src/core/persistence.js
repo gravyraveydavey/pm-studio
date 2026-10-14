@@ -11,6 +11,7 @@ export function createPersistence({ key, getState, setState }) {
   let base,
     version = 0,
     saving = false,
+    savePromise,
     timer,
     connected = false,
     blocked = false;
@@ -60,11 +61,16 @@ export function createPersistence({ key, getState, setState }) {
       void flush();
     }, 200);
   }
-  async function flush() {
+  function flush() {
     clearTimeout(timer);
-    if (saving) return false;
-    if (!connected || blocked) return false;
+    if (savePromise) return savePromise;
+    if (!connected || blocked) return Promise.resolve(false);
     saving = true;
+    // Uploads and other callers must wait for the same save, including newer edits.
+    savePromise = Promise.resolve().then(saveChanges);
+    return savePromise;
+  }
+  async function saveChanges() {
     try {
       let retries = 0;
       while (dirty()) {
@@ -103,6 +109,7 @@ export function createPersistence({ key, getState, setState }) {
       return false;
     } finally {
       saving = false;
+      savePromise = null;
     }
   }
   async function refresh() {
