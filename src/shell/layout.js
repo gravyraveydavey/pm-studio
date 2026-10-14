@@ -32,11 +32,18 @@ export function renderShell() {
     ${u.mnav ? '<div class="side-scrim" data-a="closeMnav"></div>' : ''}
     <main class="main" id="main">
       ${renderTopbar()}
+      ${syncBanner()}
       ${u.offline ? `<div class="offline-bar" role="alert">${ic('wifi-off', 15)}<span><b>You're offline.</b> Changes won't be saved until your connection is back.</span><span class="sp"></span><button class="btn btn-sm btn-secondary" data-a="retryOnline">Try again</button></div>` : ''}
       <div class="content ${u.fx.route ? 'fx-route' : ''}" id="main-content" tabindex="-1" data-keep="c:${u.route}:${u.params.id || ''}:${u.params.tab || ''}:${u.params.sec || ''}">${u.loading ? skeleton() : renderPage()}</div>
     </main>
     ${renderBottomNav()}
   </div>`;
+}
+
+export function syncBanner() {
+  const sync = S.ui.sync || { status: 'saved', message: 'All changes saved' };
+  const failed = ['error', 'conflict'].includes(sync.status);
+  return `<div id="workspace-sync-status" class="sync-bar ${failed ? 'sync-error' : ''}" ${failed ? 'role="alert"' : ''}><span>${esc(sync.message)}</span><span class="sp"></span>${failed ? `<button class="btn btn-sm btn-secondary" data-a="exportDraft">Download unsaved changes</button>${sync.status === 'conflict' ? '<button class="btn btn-sm btn-secondary" data-a="reloadSaved">Reload saved workspace</button>' : '<button class="btn btn-sm btn-secondary" data-a="retrySave">Retry save</button>'}` : ''}</div>`;
 }
 export function renderPage() {
   const r = S.ui.route;

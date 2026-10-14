@@ -1,7 +1,7 @@
 /* ---------- toasts ---------- */
 import { $, esc } from '../core/utils.js';
 import { ic } from '../core/icons.js';
-import { S, save } from '../core/store.js';
+import { S, save, persistence } from '../core/store.js';
 import { render } from '../shell/render.js';
 
 export function toast(msg, opt = {}) {
@@ -27,6 +27,10 @@ export function toast(msg, opt = {}) {
 }
 /* guarded mutation: simulates offline failures for the "Failed to save" state */
 export function mutate(fn, label) {
+  if (!persistence.canEdit()) {
+    toast('Resolve the save conflict before making more changes.', { kind: 'err' });
+    return false;
+  }
   if (S.ui.offline) {
     toast("Your changes couldn't be saved. You're offline.", { kind: 'err', action: 'Try again', onAction: () => mutate(fn, label) });
     return false;

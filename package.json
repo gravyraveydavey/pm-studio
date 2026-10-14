@@ -8,19 +8,35 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "dev:cloudflare": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply pm-studio-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply pm-studio-db --remote",
+    "test": "node --test tests/*.test.js",
+    "test:integration": "node scripts/integration-test.js",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^9.39.5",
     "globals": "^15.15.0",
     "lucide": "^0.460.0",
     "prettier": "^3.9.9",
-    "vite": "^6.4.4"
+    "vite": "^6.4.4",
+    "wrangler": "^4.151.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "dompurify": "^3.4.17",
+    "drizzle-orm": "^0.45.4",
+    "jose": "^6.2.12",
+    "zod": "^4.6.7"
   }
 }

@@ -1,7 +1,7 @@
 /* =====================================================================
    OVERLAYS: drawer, modals, popovers, context menus, command palette
    ===================================================================== */
-import { MOD, TODAY, ago, diffD, esc, fmtDate, parse, relDate } from '../core/utils.js';
+import { MOD, TODAY, ago, diffD, esc, fmtDate, parse, relDate, safeHtml } from '../core/utils.js';
 import { ic } from '../core/icons.js';
 import { D, S, commentsOf, isOver, mem, pColor, proj, task } from '../core/store.js';
 import { FT, av, filePrev, fileType, fmtComment, lbl, progBar } from '../ui/helpers.js';
@@ -88,7 +88,7 @@ export function drawerHtml(t) {
             .map(([c, i, n]) => `<button class="ibtn ibtn-xs" data-cmd="${c}" data-tip="${n}" aria-label="${n}">${ic(i, 13)}</button>`)
             .join('')}
         </div></div>
-        <div class="rte"><div class="rte-body" id="d-desc" contenteditable="true" data-rte="${t.id}" data-ph="Add a description…" role="textbox" aria-multiline="true" aria-labelledby="d-desc-l">${t.desc}</div></div>
+        <div class="rte"><div class="rte-body" id="d-desc" contenteditable="true" data-rte="${t.id}" data-ph="Add a description…" role="textbox" aria-multiline="true" aria-labelledby="d-desc-l">${safeHtml(t.desc)}</div></div>
       </div>
 
       <div class="dsec"><div class="dsec-h"><h3>Subtasks</h3><span class="cnt num">${sd}/${t.subtasks.length}</span>${t.subtasks.length ? `<span style="width:90px;display:flex">${progBar(Math.round((sd / t.subtasks.length) * 100), sd === t.subtasks.length ? 'green' : '')}</span>` : ''}</div>

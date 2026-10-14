@@ -195,6 +195,11 @@ export function render() {
   afterRender();
 }
 export function afterRender() {
+  document
+    .querySelectorAll(
+      '[data-a="invite"], [data-a="newWorkspace"], [data-a="startOnboarding"], [data-a="resetDemo"], [data-a="toggleOffline"], [data-a="demoToast"]',
+    )
+    .forEach(el => el.remove());
   selectMenu.close();
   enhanceSelects();
   placePop();

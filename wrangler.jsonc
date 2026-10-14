@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "pm-studio",
+  "main": "server/index.js",
+  "account_id": "1b0fa861043ada4aeb56811279b43977",
+  "compatibility_date": "2026-10-14",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": { "directory": "./dist", "binding": "ASSETS", "run_worker_first": true },
+  "vars": {
+    "ADMIN_EMAIL": "dave@creativerandom.com",
+    "ACCESS_TEAM_DOMAIN": "billowing-hill-63e8.cloudflareaccess.com",
+    "ACCESS_AUD": "a96a74f230ebd2c0ceab2b0f66ec208e756ef2597403b075824645bc52c7f811",
+  },
+  "d1_databases": [{ "binding": "DB", "database_name": "pm-studio-db", "database_id": "80ae647e-3739-4c8c-b87c-65ec20842582", "migrations_dir": "migrations" }],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "pm-studio-files" }],
+}

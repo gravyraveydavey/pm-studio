@@ -54,11 +54,13 @@ import './features/archive.js';
 import './actions/teams.js';
 import './actions/subtasks.js';
 import './actions/archive.js';
-import { S, D } from './core/store.js';
+import './actions/cloudflare.js';
+import { S, D, persistence } from './core/store.js';
 import { A } from './actions/actions.js';
 import { ROUTE_NAMES, render, go } from './shell/render.js';
+import { syncBanner } from './shell/layout.js';
 
-(function init() {
+(async function init() {
   document.documentElement.lang = 'en';
   if (!document.getElementById('sr-live')) {
     const l = document.createElement('div');
@@ -67,13 +69,36 @@ import { ROUTE_NAMES, render, go } from './shell/render.js';
     l.setAttribute('aria-live', 'polite');
     document.body.appendChild(l);
   }
+  document.getElementById('app').innerHTML = '<main class="page"><h1>Opening your workspace…</h1></main>';
+  try {
+    await persistence.connect();
+  } catch (error) {
+    document.getElementById('app').innerHTML =
+      '<main class="page"><h1>Unable to open your workspace</h1><p id="boot-error" role="alert"></p><button class="btn btn-primary" id="boot-retry">Reload and try again</button></main>';
+    document.getElementById('boot-error').textContent = error.message;
+    document.getElementById('boot-retry').onclick = () => location.reload();
+    return;
+  }
   const h = (location.hash || '').slice(1);
-  const authRoutes = ['login', 'signup', 'forgot', 'reset', 'verify', 'onboarding'];
-  if (authRoutes.includes(h)) S.ui.auth = h;
-  else if (h && ROUTE_NAMES[h]) S.ui.route = h;
-  else S.ui.route = S.prefs.home || 'home';
+  S.ui.route = ROUTE_NAMES[h] ? h : S.prefs.home || 'home';
   render();
 })();
+
+window.addEventListener('workspace-sync', event => {
+  S.ui.sync = event.detail;
+  const banner = document.getElementById('workspace-sync-status');
+  if (banner) banner.outerHTML = syncBanner();
+});
+window.addEventListener('workspace-refresh', () => {
+  if (S.ui.drawer && !D().tasks.some(t => t.id === S.ui.drawer)) S.ui.drawer = null;
+  if (S.ui.route === 'project' && !D().projects.some(p => p.id === S.ui.params.id)) go('projects');
+  else render();
+});
+
+// Poll while visible to pick up agent edits; tab focus also refreshes immediately.
+setInterval(() => {
+  if (document.visibilityState === 'visible') void persistence.refresh();
+}, 30000);
 
 // Dev-only handle for debugging and screenshot tooling; stripped from production builds.
 if (import.meta.env.DEV) window.__gr8r = { S, D, A, go, render };

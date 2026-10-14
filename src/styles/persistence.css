@@ -1,0 +1,15 @@
+.sync-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px var(--gutter);
+  min-height: 30px;
+  font-size: 12px;
+  color: var(--text-2);
+  border-bottom: 1px solid var(--border);
+}
+.sync-error {
+  background: var(--surface-2);
+  color: var(--red);
+  flex-wrap: wrap;
+}

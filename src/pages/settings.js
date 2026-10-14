@@ -48,19 +48,11 @@ export const SET_NAV = [
   [
     'Security',
     [
-      ['password', 'Password', 'key-round'],
-      ['sessions', 'Sessions', 'monitor-smartphone'],
-      ['2fa', 'Two-factor authentication', 'shield-check'],
+      ['access', 'Sign-in', 'shield-check'],
+      ['backups', 'Backups & API', 'database'],
     ],
   ],
-  [
-    'Billing',
-    [
-      ['plan', 'Plan', 'gem'],
-      ['payment', 'Payment', 'credit-card'],
-      ['invoices', 'Invoices', 'receipt'],
-    ],
-  ],
+  ['Hosting', [['hosting', 'Cloudflare', 'cloud']]],
 ];
 export function srow(t, d, ctl) {
   return `<div class="srow"><div><div class="t">${t}</div>${d ? `<div class="d">${d}</div>` : ''}</div><div class="row">${ctl}</div></div>`;
@@ -87,6 +79,26 @@ export function settingsBody(sec, title) {
   const d = D();
   const np = d.notifPrefs;
   const H = lead => `<h1>${title}</h1><p class="lead">${lead}</p>`;
+  if (['access', 'password', 'sessions', '2fa', 'permissions'].includes(sec))
+    return (
+      H('Your personal workspace is protected by Cloudflare Access.') +
+      `<div class="sblock"><h2>Workspace owner</h2><p>${esc(me().email)}</p><p>Cloudflare Access verifies your sign-in. Manage your identity provider and multi-factor authentication in Cloudflare; this app does not store passwords.</p><button class="btn btn-secondary" data-a="signOut">Sign out</button></div>`
+    );
+  if (['hosting', 'plan', 'payment', 'invoices'].includes(sec))
+    return (
+      H('Hosted on Cloudflare Workers, D1 and private R2 storage.') +
+      '<div class="sblock"><p>Usage and billing are managed in your Cloudflare account. PM Studio has no subscription plans.</p><p>Attachment uploads are limited to 25 MB each.</p></div>'
+    );
+  if (sec.startsWith('notif-'))
+    return (
+      H('Notification delivery is not configured.') +
+      '<div class="sblock"><p>Task activity is recorded inside your workspace. Email and push notifications are not enabled.</p></div>'
+    );
+  if (sec === 'backups')
+    return (
+      H('Export your workspace and connect project tools.') +
+      `<div class="sblock"><h2>Backup</h2><p>Download projects, tasks, comments, preferences and attachment metadata as JSON. Download attachment files separately; they are not included in this export.</p><button class="btn btn-primary" data-a="exportWorkspace">Export workspace</button></div><div class="sblock"><h2>Import into an empty workspace</h2><p>Import a PM Studio backup or a JSON export of the original browser workspace.</p><label class="btn btn-secondary">Choose JSON backup<input type="file" accept="application/json,.json" hidden data-in="importWorkspace"></label></div><div class="sblock"><h2>API and MCP</h2><p>API: <code>${esc(location.origin)}/api/</code></p><p>MCP: <code>${esc(location.origin)}/mcp</code></p><p>Both require Cloudflare Access authentication. Agent clients need an authenticated session or an Access service token; the app does not expose an anonymous endpoint.</p></div>`
+    );
   switch (sec) {
     case 'workspace':
       return (

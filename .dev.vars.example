@@ -1,0 +1,2 @@
+# Copy to .dev.vars. This shortcut is accepted only for localhost URLs.
+DEV_AUTH=1

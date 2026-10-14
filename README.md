@@ -10,7 +10,12 @@ UI framework and no runtime dependency.
 
 ## Getting started
 
-Requires Node.js 18 or newer (`.nvmrc` pins 22).
+This fork now targets a private Cloudflare Worker with D1 persistence, Drizzle
+migrations, R2 attachments and authenticated API/MCP access. See
+[Cloudflare setup and limitations](docs/cloudflare.md) for the current workflow.
+The original demo's login and browser-only storage have been replaced.
+
+Requires Node.js 22 or newer (`.nvmrc` pins 22).
 
 ```bash
 npm install
@@ -79,4 +84,9 @@ Every push and pull request runs lint, the format check and a production build
 
 ## Deploy
 
-`vercel.json` builds with Vite and serves `dist/`.
+For a fresh Cloudflare account, follow the
+[Cloudflare setup guide](docs/cloudflare-setup-guide.md).
+
+`npm run deploy` builds with Vite and deploys the Worker and `dist/` assets using
+`wrangler.jsonc`. Apply D1 migrations and configure Cloudflare Access first; see
+[the Cloudflare guide](docs/cloudflare.md).

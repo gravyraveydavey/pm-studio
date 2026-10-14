@@ -4,7 +4,8 @@
 import { $, $$, TODAY, addD, dOff, esc, fmtDate, iso, parse, uid } from '../core/utils.js';
 import { PR, PSTAT, ST } from '../core/constants.js';
 import { seed } from '../data/seed.js';
-import { D, DEFAULT_PREFS, S, allTasks, canSee, commentsOf, logAct, me, mem, proj, save, task, tasksOf, visibleProjects } from '../core/store.js';
+import { D, DEFAULT_PREFS, S, allTasks, canSee, commentsOf, logAct, me, mem, proj, save, task, tasksOf, visibleProjects, persistence } from '../core/store.js';
+import { apiRequest } from '../core/persistence.js';
 import { fileType, fsize } from '../ui/helpers.js';
 import { effectiveDark } from '../core/theme.js';
 import { mutate, toast } from '../ui/toast.js';
@@ -578,7 +579,7 @@ IN.formMore = el => {
   S.ui.form.more = el.checked;
 };
 IN.formFiles = el => {
-  [...el.files].forEach(f => S.ui.form.files.push({ name: f.name, size: fsize(f.size), type: fileType(f.name) }));
+  [...el.files].forEach(f => S.ui.form.files.push({ file: f, name: f.name, size: fsize(f.size), type: fileType(f.name) }));
   render();
 };
 KEY.formAddSub = el => {
@@ -609,7 +610,8 @@ A.submitTask = () => {
     return;
   }
   S.ui.errors = {};
-  const files = f.files.map(x => ({ id: uid('a'), name: x.name, type: x.type, size: x.size, by: D().me, at: Date.now() }));
+  const selectedFiles = f.files.map(x => x.file).filter(Boolean);
+  const files = [];
   const base = {
     title,
     project: f.project,
@@ -642,6 +644,7 @@ A.submitTask = () => {
     S.ui.modals.pop();
     render();
     toast('Changes saved');
+    if (selectedFiles.length) void handleFiles(selectedFiles, { task: t.id, project: t.project });
     return;
   }
   let t;
@@ -652,6 +655,7 @@ A.submitTask = () => {
     })
   )
     return;
+  if (selectedFiles.length) void handleFiles(selectedFiles, { task: t.id, project: t.project });
   if (f.more) {
     Object.assign(f, { title: '', desc: '', subtasks: [], files: [] });
     render();
@@ -797,39 +801,49 @@ A.previewFile = el => {
   S.ui.pop = null;
   if (f) openModal({ type: 'filePreview', file: f, tid: f.task });
 };
-export function handleFiles(files, ctx) {
+export async function handleFiles(files, ctx) {
   if (!files || !files.length) return;
   if (S.ui.offline) {
     toast("Upload failed — you're offline.", { kind: 'err', action: 'Try again', onAction: () => {} });
     return;
   }
+  if (!persistence.canEdit() || !(await persistence.flush())) {
+    toast('Save your current changes before uploading.', { kind: 'err' });
+    return;
+  }
   S.ui.uploads = S.ui.uploads || [];
-  [...files].forEach(file => {
-    const up = { id: uid('u'), name: file.name, size: fsize(file.size), project: ctx.project, task: ctx.task, pct: 0 };
+  for (const file of files) {
+    if (!file.size || file.size > 25 * 1024 * 1024) {
+      toast('Choose a file between 1 byte and 25 MB.', { kind: 'err' });
+      continue;
+    }
+    const up = { id: uid('f'), name: file.name, size: fsize(file.size), project: ctx.project, task: ctx.task, pct: 0 };
     S.ui.uploads.push(up);
-    const iv = setInterval(() => {
-      up.pct = Math.min(100, up.pct + 9 + Math.round(Math.random() * 22));
-      const bar = document.getElementById('upbar-' + up.id),
-        pc = document.getElementById('upct-' + up.id);
-      if (bar) bar.style.setProperty('--p', up.pct / 100);
-      if (pc) pc.textContent = up.pct + '%';
-      if (up.pct >= 100) {
-        clearInterval(iv);
-        S.ui.uploads = S.ui.uploads.filter(x => x !== up);
-        const rec = { id: uid('f'), name: up.name, type: fileType(up.name), size: up.size, by: D().me, at: Date.now() };
-        D().files.unshift({ ...rec, project: up.project, task: up.task || null });
-        if (up.task) {
-          const t = task(up.task);
-          t.attachments.push(rec);
-          logAct('added a file to', t, up.name);
-        }
-        save();
-        render();
-        toast(`Uploaded ${up.name}`);
+    render();
+    try {
+      const params = new URLSearchParams({ name: file.name, project: ctx.project });
+      if (ctx.task) params.set('task', ctx.task);
+      const stored = await apiRequest(`/api/uploads/${up.id}?${params}`, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': 'application/octet-stream' },
+      });
+      const rec = { id: up.id, ...stored, type: fileType(up.name), size: up.size, by: D().me, at: Date.now() };
+      D().files.unshift({ ...rec, project: up.project, task: up.task || null });
+      if (up.task) {
+        const t = task(up.task);
+        t.attachments.push(rec);
+        logAct('added a file to', t, up.name);
       }
-    }, 220);
-  });
-  render();
+      save();
+      if (await persistence.flush()) toast(`Uploaded ${up.name}`);
+    } catch (error) {
+      toast(`Upload failed: ${error.message}`, { kind: 'err' });
+    } finally {
+      S.ui.uploads = S.ui.uploads.filter(x => x !== up);
+      render();
+    }
+  }
 }
 IN.uploadFiles = el => {
   handleFiles(el.files, { project: el.dataset.project, task: el.dataset.task });
@@ -1754,13 +1768,10 @@ A.newWorkspace = () => {
   render();
 };
 A.signOut = () => {
-  S.ui.pop = null;
-  S.ui.palette = null;
-  S.ui.drawer = null;
-  S.ui.modals = [];
-  S.ui.auth = 'login';
-  S.ui.errors = {};
-  render();
+  void persistence.flush().then(saved => {
+    if (saved) location.assign('/cdn-cgi/access/logout');
+    else toast('Save or export your changes before signing out.', { kind: 'err' });
+  });
 };
 A.shortcuts = () => {
   S.ui.pop = null;
